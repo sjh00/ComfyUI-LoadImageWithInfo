@@ -136,7 +136,7 @@ class SaveImageWithInfo:
                 "filename": ("STRING", {"default": "image"}),
                 "format": (["original", "avif", "webp", "jpg", "png", "tiff"], {"default": "original"}),
                 "original_format": ("STRING", {"default": "png"}),
-                "quality": ("INT", {"default": 92, "min": 1, "max": 100, "step": 1, "display": "silder", 'tooltip': "Quality for JPEG/WebP/AVIF formats; Quality is relative to each format. \n* Example: AVIF 60 is same quality as WebP 90. \n* PNG compression is fixed at 4 and not affected by this. PNG compression times skyrocket above level 4 for zero benefits on filesize."}),
+                "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1, "display": "silder", 'tooltip': "Quality for JPEG/WebP/AVIF formats; Quality is relative to each format. \n* Example: AVIF 60 is same quality as WebP 90. \n* PNG compression is fixed at 4 and not affected by this. PNG compression times skyrocket above level 4 for zero benefits on filesize."}),
                 "dpi": ("INT", {"default": 96}),
                 "exif": ("STRING", {"default": "{}"}),
                 'image_preview': ('BOOLEAN', {'default': True, 'tooltip': "Turns the image preview on and off"}),
@@ -153,7 +153,7 @@ class SaveImageWithInfo:
     DESCRIPTION = "Saves the input image with to your ComfyUI output directory."
 
     type = 'output'
-    quality = 92
+    quality = 95
     quality_avif = 80
     # optimize_image only works for jpeg, png and TIFF, with like just 2% reduction in size; not used for PNG as it forces a level 9 compression.
     optimize_image = True
@@ -175,6 +175,15 @@ class SaveImageWithInfo:
         
         # 确保目录存在
         os.makedirs(output_dir, exist_ok=True)
+
+        # 如果文件已存在，更改文件名
+        if os.path.exists(full_path):
+            base, ext = os.path.splitext(full_filename)
+            counter = 1
+            while os.path.exists(full_path):
+                full_filename = f"{base}_{counter}{ext}"
+                full_path = os.path.join(output_dir, full_filename)
+                counter += 1
         
         # 处理EXIF数据
         try:
