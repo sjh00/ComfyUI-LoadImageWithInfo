@@ -189,7 +189,7 @@ class SaveImageWithInfo:
             exif_data = {}
         
         # 保存图像
-        img = 255. * image.cpu().numpy()
+        img = 255. * image[0].cpu().numpy()
         img = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8))
         
         # 设置DPI
