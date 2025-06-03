@@ -24,8 +24,8 @@ class LoadImageWithInfo:
     FUNCTION = "load_image"
     def load_image(self, image):
         image_path = folder_paths.get_annotated_filepath(image)
-        image_name = os.path.basename(image_path)
-        image_format = os.path.splitext(image_path)[1][1:] or 'png'
+        image_name, image_format = os.path.splitext(os.path.basename(image_path))
+        image_format = image_format[1:] or 'png'
         image_file_size = os.path.getsize(image_path)
 
         img = node_helpers.pillow(Image.open, image_path)
