@@ -20,10 +20,9 @@
 
 该节点可以保存图像并保留原始图像的元数据：
 
-- 支持保存为原始格式或指定格式（avif、webp、jpg、png）
+- 支持保存为原始格式或指定格式（avif、webp、jpg、png、tiff）
 - 保留原始图像的DPI信息
 - 保留原始图像的EXIF数据（对支持EXIF的格式）
-- 支持批量图像保存
 
 ## 安装
 
@@ -49,15 +48,15 @@ git clone https://github.com/sjh00/ComfyUI-LoadImageWithInfo.git
 ### SaveImageWithInfo 节点
 
 1. 在ComfyUI工作流中，找到`image`分类下的`Save Image With Info`节点
-2. 将要保存的图像连接到节点的`images`输入
+2. 将要保存的图像连接到节点的`image`输入
 3. 设置以下参数：
    - `filename`：保存的文件名（不含扩展名）
-   - `format`：保存格式（original、avif、webp、jpg、png）
+   - `format`：保存格式（original、avif、webp、jpg、png、tiff）
    - `original_format`：原始格式（当format设为original时使用）
-   - `quality`：保存质量（1-100，默认100，png格式换算为0-9压缩率）
+   - `quality`：保存质量（1-100，AVIF默认60，其他默认90，png/tiff格式不受影响）
    - `dpi`：图像DPI值
    - `exif`：EXIF元数据（JSON格式字符串）
-4. 节点将保存图像并返回保存后的图像和文件名
+4. 节点将保存图像
 
 ## 示例输出
 
@@ -100,9 +99,9 @@ LoadImageWithInfo:
   - exif -> SaveImageWithInfo.exif
 
 SaveImageWithInfo:
-  - images <- LoadImageWithInfo.image
+  - image <- LoadImageWithInfo.image
   - filename <- LoadImageWithInfo.filename
-  - format -> 选择保存格式（original/avif/webp/jpg/png）
+  - format -> 选择保存格式（original/avif/webp/jpg/png/tiff）
   - original_format <- LoadImageWithInfo.format
   - quality -> 设置保存质量（1-100）
   - dpi <- LoadImageWithInfo.dpi
@@ -121,14 +120,13 @@ SaveImageWithInfo:
 
 ### SaveImageWithInfo 节点
 
-- 并非所有图像格式都支持EXIF数据，目前只有JPG和TIFF格式支持保存EXIF数据
+- 并非所有图像格式都支持EXIF数据，目前只有JPG格式支持保存EXIF数据
 - 如果选择的保存格式不支持EXIF，EXIF数据将被忽略
-- 当保存多张图像时（批处理），除第一张图像外，其他图像的文件名会自动添加索引号
 - 如果指定的格式无法保存，将自动回退到PNG格式
 - quality参数对不同格式的影响：
   - JPG/JPEG：直接影响图像质量（1-100，值越高质量越好）
-  - PNG：影响压缩级别（quality值会被映射到PNG的compress_level，quality值越高质量越好）
-  - WEBP/AVIF：影响图像质量（1-100，值越高质量越好）
+  - PNG/TIFF：不受影响
+  - WEBP/AVIF：影响图像质量（1-100，值越高质量越好，AVIF 60 is same quality as WebP 90）
   - 其他格式：如果格式支持quality参数则使用，否则忽略
 
 ## 许可证

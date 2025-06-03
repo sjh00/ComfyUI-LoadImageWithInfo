@@ -1,6 +1,8 @@
 import hashlib
 import os
+import json
 from PIL import Image, ImageOps, ImageSequence, ExifTags
+from PIL.PngImagePlugin import PngInfo
 import pillow_avif
 import numpy as np
 import torch
@@ -11,8 +13,8 @@ class LoadImageWithInfo:
     @classmethod
     def INPUT_TYPES(s):
         input_dir = folder_paths.get_input_directory()
-        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
-        files = folder_paths.filter_files_content_types(files, ["image"])
+        img_exts = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".PNG", ".JPG", ".JPEG", ".WEBP", ".BMP", ".avif", ".AVIF", ".tif", ".tiff", ".TIF", ".TIFF"]
+        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f)) and os.path.splitext(f)[1] in img_exts]
         return {"required":
                     {"image": (sorted(files), {"image_upload": True})},
                 }
@@ -39,7 +41,7 @@ class LoadImageWithInfo:
         try:
             dpi = img.info.get('dpi', (96, 96))[0]
         except:
-            dpi = 96
+            dpi = 0
         
         # 获取EXIF信息
         exif_data = {}
@@ -130,24 +132,33 @@ class SaveImageWithInfo:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "images": ("IMAGE",),
+                "image": ("IMAGE",),
                 "filename": ("STRING", {"default": "image"}),
-                "format": (["original", "avif", "webp", "jpg", "png"], {"default": "original"}),
+                "format": (["original", "avif", "webp", "jpg", "png", "tiff"], {"default": "original"}),
                 "original_format": ("STRING", {"default": "png"}),
-                "quality": ("INT", {"default": 100, "min": 1, "max": 100}),
+                "quality": ("INT", {"default": 90, "min": 1, "max": 100, "step": 1, "display": "silder", 'tooltip': "Quality for JPEG/WebP/AVIF formats; Quality is relative to each format. \n* Example: AVIF 60 is same quality as WebP 90. \n* PNG compression is fixed at 4 and not affected by this. PNG compression times skyrocket above level 4 for zero benefits on filesize."}),
                 "dpi": ("INT", {"default": 96}),
                 "exif": ("STRING", {"default": "{}"}),
+                'image_preview': ('BOOLEAN', {'default': True, 'tooltip': "Turns the image preview on and off"}),
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
 
-    CATEGORY = "image"
-    RETURN_TYPES = ("IMAGE", "STRING")
-    RETURN_NAMES = ("images", "filename")
+    RETURN_TYPES = ()
     FUNCTION = "save_image"
+
     OUTPUT_NODE = True
 
-    def save_image(self, images, filename, format, original_format, quality, dpi, exif, prompt=None, extra_pnginfo=None):
+    CATEGORY = "image"
+    DESCRIPTION = "Saves the input image with to your ComfyUI output directory."
+
+    type = 'output'
+    quality = 90
+    quality_avif = 60
+    # optimize_image only works for jpeg, png and TIFF, with like just 2% reduction in size; not used for PNG as it forces a level 9 compression.
+    optimize_image = True
+
+    def save_image(self, image, filename, format, original_format, quality, dpi, exif, prompt=None, extra_pnginfo=None):
         # 确定保存格式
         save_format = original_format if format == "original" else format
         
@@ -167,7 +178,6 @@ class SaveImageWithInfo:
         try:
             if exif and exif != "{}":
                 if isinstance(exif, str):
-                    import json
                     exif_data = json.loads(exif)
                 else:
                     exif_data = exif
@@ -177,80 +187,88 @@ class SaveImageWithInfo:
             exif_data = {}
         
         # 保存图像
-        results = []
-        for i, image in enumerate(images):
-            img = 255. * image.cpu().numpy()
-            img = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8))
-            
-            # 设置DPI
-            if dpi > 0:
-                img.info['dpi'] = (dpi, dpi)
-            
-            # 构建单个图像的文件名
-            if i > 0:
-                current_filename = f"{filename}_{i}.{save_format}"
-                current_path = os.path.join(output_dir, current_filename)
-            else:
-                current_filename = full_filename
-                current_path = full_path
-            
-            # 根据格式保存图像
-            if save_format.lower() == 'png':
-                # PNG的compress_level范围是0-9，将quality(1-100)映射到compress_level(0-9)
-                # 注意：对于PNG，较低的compress_level意味着较低的压缩率和较高的质量
-                compress_level = max(0, min(9, 9 - int(quality / 11)))
-                img.save(current_path, format='PNG', compress_level=compress_level, pnginfo=None)
-            elif save_format.lower() in ['jpg', 'jpeg']:
-                # 添加EXIF数据
-                if exif_data:
-                    exif_bytes = img.getexif()
-                    for k, v in exif_data.items():
-                        try:
-                            # 尝试找到EXIF标签的数字ID
-                            tag_id = None
-                            for tag, tag_name in ExifTags.TAGS.items():
-                                if tag_name == k:
-                                    tag_id = tag
-                                    break
-                            
-                            if tag_id:
-                                exif_bytes[tag_id] = v
-                            else:
-                                # 如果找不到标签ID，尝试直接使用键名
-                                exif_bytes[k] = v
-                        except:
-                            pass
-                    img.save(current_path, format='JPEG', quality=quality, exif=exif_bytes)
-                img.save(current_path, format='JPEG', quality=quality)
+        img = 255. * image.cpu().numpy()
+        img = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8))
+        
+        # 设置DPI
+        if dpi > 0:
+            img.info['dpi'] = (dpi, dpi)
+        
+        kwargs = dict()
+        
+        # 根据格式保存图像
+        if save_format.lower() == 'png':
+            kwargs['compress_level'] = 4
+            kwargs["pnginfo"] = self.genMetadataPng(prompt, extra_pnginfo)
+        else:
+            kwargs["optimize"] = self.optimize_image
+            if save_format.lower() == 'avif':
+                if quality == 100:
+                    kwargs["lossless"] = True
+                else:
+                    if quality == 0 or quality > self.quality_avif:
+                        quality = self.quality_avif
+                    kwargs['quality'] = quality
             elif save_format.lower() == 'webp':
-                img.save(current_path, format='WEBP', quality=quality)
-            elif save_format.lower() == 'avif':
-                img.save(current_path, format='AVIF', quality=quality)
-            else:
-                # 尝试使用原始格式保存
-                try:
-                    # 尝试使用quality参数，如果格式不支持则忽略
-                    try:
-                        img.save(current_path, format=save_format.upper(), quality=quality)
-                    except TypeError:
-                        img.save(current_path, format=save_format.upper())
-                except:
-                    # 如果失败，默认保存为PNG
-                    current_filename = f"{filename}_{i if i > 0 else ''}.png"
-                    current_path = os.path.join(output_dir, current_filename)
-                    compress_level = max(0, min(9, 9 - int(quality / 11)))
-                    img.save(current_path, format='PNG', compress_level=compress_level)
-            
-            results.append({
-                'filename': current_filename,
-                'path': current_path
-            })
+                if quality == 100:
+                    kwargs["lossless"] = True
+                else:
+                    if quality == 0:
+                        quality = self.quality
+                    kwargs['quality'] = quality
+            elif save_format.lower() != 'tiff':
+                if quality == 0:
+                    quality = self.quality
+                kwargs['quality'] = quality
+
+                if save_format.lower() in ['jpg', 'jpeg']:
+                    # 添加EXIF数据
+                    if exif_data:
+                        exif_bytes = img.getexif()
+                        for k, v in exif_data.items():
+                            try:
+                                # 尝试找到EXIF标签的数字ID
+                                tag_id = None
+                                for tag, tag_name in ExifTags.TAGS.items():
+                                    if tag_name == k:
+                                        tag_id = tag
+                                        break
+                                
+                                if tag_id:
+                                    exif_bytes[tag_id] = v
+                                else:
+                                    # 如果找不到标签ID，尝试直接使用键名
+                                    exif_bytes[k] = v
+                            except:
+                                pass
+                        kwargs['exif'] = exif_bytes
+                    kwargs["subsampling"] = 0
+                else:
+                    # 默认保存为PNG
+                    kwargs['compress_level'] = 4
+                    kwargs["pnginfo"] = self.genMetadataPng(prompt, extra_pnginfo)
+                    full_filename = os.path.splitext(full_filename)[0] + '.png'
+                    full_path = os.path.splitext(full_path)[0] + '.png'
         
-        # 添加到ComfyUI的保存图像列表中
-        for result in results:
-            folder_paths.add_to_output_list(result['path'])
+        img.save(full_path, **kwargs)
         
-        return (images, full_filename)
+        results = [{
+            'filename': full_filename,
+            'path': full_path,
+            'type': self.type
+        }]
+        
+        return { "ui": { "images": results } }
+    
+    def genMetadataPng(self, prompt, extra_pnginfo=None):
+        metadata = PngInfo()
+        if prompt is not None:
+            metadata.add_text('prompt', json.dumps(prompt))
+        if extra_pnginfo is not None:
+            for x in extra_pnginfo:
+                metadata.add_text(x, json.dumps(extra_pnginfo[x]))
+        
+        return metadata
 
 # 注册节点
 NODE_CLASS_MAPPINGS = {
