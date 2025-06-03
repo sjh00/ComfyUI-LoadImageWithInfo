@@ -136,7 +136,7 @@ class SaveImageWithInfo:
                 "filename": ("STRING", {"default": "image"}),
                 "format": (["original", "avif", "webp", "jpg", "png", "tiff"], {"default": "original"}),
                 "original_format": ("STRING", {"default": "png"}),
-                "quality": ("INT", {"default": 90, "min": 1, "max": 100, "step": 1, "display": "silder", 'tooltip': "Quality for JPEG/WebP/AVIF formats; Quality is relative to each format. \n* Example: AVIF 60 is same quality as WebP 90. \n* PNG compression is fixed at 4 and not affected by this. PNG compression times skyrocket above level 4 for zero benefits on filesize."}),
+                "quality": ("INT", {"default": 92, "min": 1, "max": 100, "step": 1, "display": "silder", 'tooltip': "Quality for JPEG/WebP/AVIF formats; Quality is relative to each format. \n* Example: AVIF 60 is same quality as WebP 90. \n* PNG compression is fixed at 4 and not affected by this. PNG compression times skyrocket above level 4 for zero benefits on filesize."}),
                 "dpi": ("INT", {"default": 96}),
                 "exif": ("STRING", {"default": "{}"}),
                 'image_preview': ('BOOLEAN', {'default': True, 'tooltip': "Turns the image preview on and off"}),
@@ -153,7 +153,7 @@ class SaveImageWithInfo:
     DESCRIPTION = "Saves the input image with to your ComfyUI output directory."
 
     type = 'output'
-    quality = 90
+    quality = 92
     quality_avif = 60
     # optimize_image only works for jpeg, png and TIFF, with like just 2% reduction in size; not used for PNG as it forces a level 9 compression.
     optimize_image = True

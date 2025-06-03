@@ -53,7 +53,7 @@ git clone https://github.com/sjh00/ComfyUI-LoadImageWithInfo.git
    - `filename`：保存的文件名（不含扩展名）
    - `format`：保存格式（original、avif、webp、jpg、png、tiff）
    - `original_format`：原始格式（当format设为original时使用）
-   - `quality`：保存质量（1-100，AVIF默认60，其他默认90，png/tiff格式不受影响）
+   - `quality`：保存质量（1-100，AVIF默认60，其他默认92，png/tiff格式不受影响）
    - `dpi`：图像DPI值
    - `exif`：EXIF元数据（JSON格式字符串）
 4. 节点将保存图像
