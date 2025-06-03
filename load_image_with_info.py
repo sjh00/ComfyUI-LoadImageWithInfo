@@ -19,7 +19,7 @@ class LoadImageWithInfo:
 
     CATEGORY = "image"
 
-    RETURN_TYPES = ("IMAGE", "MASK", "STRING", "STRING", "INT", "STRING", "INT", "INT", "INT", "INT", "STRING", "INT", "STRING")
+    RETURN_TYPES =("IMAGE","MASK","STRING","STRING","INT","INT","INT","INT","INT","INT","STRING")
     RETURN_NAMES = ("image","mask","filename","format","dpi","width","height","long_edge","short_edge","file_size","exif")
     FUNCTION = "load_image"
     def load_image(self, image):
