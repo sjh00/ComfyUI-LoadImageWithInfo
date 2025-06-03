@@ -53,7 +53,7 @@ git clone https://github.com/sjh00/ComfyUI-LoadImageWithInfo.git
    - `filename`：保存的文件名（不含扩展名）
    - `format`：保存格式（original、avif、webp、jpg、png、tiff）
    - `original_format`：原始格式（当format设为original时使用）
-   - `quality`：保存质量（1-100，AVIF默认60，其他默认92，png/tiff格式不受影响）
+   - `quality`：保存质量（1-100，AVIF默认80，其他默认92，png/tiff格式不受影响）
    - `dpi`：图像DPI值
    - `exif`：EXIF元数据（JSON格式字符串）
 4. 节点将保存图像
@@ -126,7 +126,7 @@ SaveImageWithInfo:
 - quality参数对不同格式的影响：
   - JPG/JPEG：直接影响图像质量（1-100，值越高质量越好）
   - PNG/TIFF：不受影响
-  - WEBP/AVIF：影响图像质量（1-100，值越高质量越好，AVIF 60 is same quality as WebP 90）
+  - WEBP/AVIF：影响图像质量（1-100，值越高质量越好，AVIF最高80；若设置100则WEBP/AVIF开启无损模式）
   - 其他格式：如果格式支持quality参数则使用，否则忽略
 
 ## 许可证

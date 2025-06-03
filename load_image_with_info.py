@@ -154,7 +154,7 @@ class SaveImageWithInfo:
 
     type = 'output'
     quality = 92
-    quality_avif = 60
+    quality_avif = 80
     # optimize_image only works for jpeg, png and TIFF, with like just 2% reduction in size; not used for PNG as it forces a level 9 compression.
     optimize_image = True
 
