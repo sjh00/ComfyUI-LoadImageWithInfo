@@ -158,7 +158,9 @@ class SaveImageWithInfo:
     # optimize_image only works for jpeg, png and TIFF, with like just 2% reduction in size; not used for PNG as it forces a level 9 compression.
     optimize_image = True
 
-    def save_image(self, image, filename, format, original_format, quality, dpi, exif, prompt=None, extra_pnginfo=None):
+    def save_image(self, image, filename, format, original_format, quality, dpi, exif, image_preview, prompt=None, extra_pnginfo=None):
+        results = []
+
         # 确定保存格式
         save_format = original_format if format == "original" else format
         
@@ -252,12 +254,13 @@ class SaveImageWithInfo:
         
         img.save(full_path, **kwargs)
         
-        results = [{
-            'filename': full_filename,
-            'path': full_path,
-            'type': self.type
-        }]
-        
+        if image_preview:
+            results.append({
+                'filename': full_filename,
+                'path': full_path,
+                'type': self.type
+            })
+            
         return { "ui": { "images": results } }
     
     def genMetadataPng(self, prompt, extra_pnginfo=None):
