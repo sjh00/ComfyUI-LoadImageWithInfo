@@ -1,0 +1,16 @@
+[project]
+name = "loadimagewithinfo"
+description = "This is a custom node for ComfyUI that retrieves detailed information about an image, including its name, format (extension), DPI, dimensions, long side, short side, file size, and EXIF data. It also supports image saving "
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["pillow-avif-plugin"]
+
+[project.urls]
+Repository = "https://github.com/sjh00/ComfyUI-LoadImageWithInfo"
+#  Used by Comfy Registry https://registry.comfy.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI-LoadImageWithInfo"
+Icon = ""
+includes = []
