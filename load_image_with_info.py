@@ -139,6 +139,7 @@ class SaveImageWithInfo:
                 "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1, "display": "silder", 'tooltip': "Quality for JPEG/WebP/AVIF formats; Quality is relative to each format. \n* Example: AVIF 60 is same quality as WebP 90. \n* PNG compression is fixed at 4 and not affected by this. PNG compression times skyrocket above level 4 for zero benefits on filesize."}),
                 "dpi": ("INT", {"default": 96}),
                 "exif": ("STRING", {"default": "{}"}),
+                'always_save_png': ('BOOLEAN', {'default': True, 'tooltip': "总是保存为PNG格式，即使选择了其他格式。"}),
                 'image_preview': ('BOOLEAN', {'default': True, 'tooltip': "Turns the image preview on and off"}),
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
@@ -158,32 +159,40 @@ class SaveImageWithInfo:
     # optimize_image only works for jpeg, png and TIFF, with like just 2% reduction in size; not used for PNG as it forces a level 9 compression.
     optimize_image = True
 
-    def save_image(self, image, filename, format, original_format, quality, dpi, exif, image_preview, prompt=None, extra_pnginfo=None):
+    def save_image(self, image, filename, format, original_format, quality, dpi, exif, always_save_png, image_preview, prompt=None, extra_pnginfo=None):
         results = []
 
         # 确定保存格式
         save_format = original_format if format == "original" else format
         
         # 构建完整文件名
-        full_filename = f"{filename}.{save_format}" if not filename.endswith(f".{save_format}") else filename
+        if filename.endswith(f".{save_format}"):
+            filename = filename[:-len(f".{save_format}")]
+        full_filename = f"{filename}.{save_format}"
+        full_filename_png = f"{filename}.png"
         
         # 获取输出目录
         output_dir = folder_paths.get_output_directory()
         
         # 构建完整路径
         full_path = os.path.join(output_dir, full_filename)
+        LoadImageWithInfoPNG_dir = os.path.join(output_dir, "LoadImageWithInfoPNG")
+        full_path_png = os.path.join(LoadImageWithInfoPNG_dir, full_filename_png)
         
         # 确保目录存在
         os.makedirs(output_dir, exist_ok=True)
+        if always_save_png: os.makedirs(LoadImageWithInfoPNG_dir, exist_ok=True)
 
         # 如果文件已存在，更改文件名
         if os.path.exists(full_path):
             base, ext = os.path.splitext(full_filename)
-            counter = 1
+            counter = 0
             while os.path.exists(full_path):
+                counter += 1
                 full_filename = f"{base}_{counter}{ext}"
                 full_path = os.path.join(output_dir, full_filename)
-                counter += 1
+            full_filename_png = f"{full_filename_png[:-4]}_{counter}.png"
+            full_path_png = os.path.join(LoadImageWithInfoPNG_dir, full_filename_png)
         
         # 处理EXIF数据
         try:
@@ -206,11 +215,14 @@ class SaveImageWithInfo:
             img.info['dpi'] = (dpi, dpi)
         
         kwargs = dict()
+        kwargs_png = {
+            'compress_level': 4,
+            'pnginfo': self.genMetadataPng(prompt, extra_pnginfo)
+        }
         
         # 根据格式保存图像
         if save_format.lower() == 'png':
-            kwargs['compress_level'] = 4
-            kwargs["pnginfo"] = self.genMetadataPng(prompt, extra_pnginfo)
+            kwargs = kwargs_png
         else:
             kwargs["optimize"] = self.optimize_image
             if save_format.lower() == 'avif':
@@ -256,12 +268,12 @@ class SaveImageWithInfo:
                     kwargs["subsampling"] = 0
                 else:
                     # 默认保存为PNG
-                    kwargs['compress_level'] = 4
-                    kwargs["pnginfo"] = self.genMetadataPng(prompt, extra_pnginfo)
-                    full_filename = os.path.splitext(full_filename)[0] + '.png'
-                    full_path = os.path.splitext(full_path)[0] + '.png'
+                    kwargs = kwargs_png
+                    full_filename = full_filename_png
+                    full_path = os.path.join(output_dir, full_filename)
         
         img.save(full_path, **kwargs)
+        if always_save_png: img.save(full_path_png, **kwargs_png)
         
         if image_preview:
             results.append({

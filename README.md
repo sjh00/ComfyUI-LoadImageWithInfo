@@ -23,6 +23,7 @@
 - 支持保存为原始格式或指定格式（avif、webp、jpg、png、tiff）
 - 保留原始图像的DPI信息
 - 保留原始图像的EXIF数据（对支持EXIF的格式）
+- 可选非png格式时同时保存png格式到 LoadImageWithInfoPNG 文件夹内
 
 ## 安装
 
